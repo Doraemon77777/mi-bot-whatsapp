@@ -14,7 +14,7 @@
     "notifications",
     "mentions"
   ],
-  "author": "Tu Nombre",
+  "author": "Sudo",
   "license": "MIT",
   "dependencies": {
     "whatsapp-web.js": "^1.24.0",
