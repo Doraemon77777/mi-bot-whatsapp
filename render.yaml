@@ -1,23 +1,21 @@
 services:
   - type: web
-    name: whatsapp-bot
+    name: mi-bot-whatsapp
     env: node
+    region: oregon
+    plan: free
+    branch: main
+    rootDirectory: ./
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node index.js
     envVars:
       - key: NODE_ENV
         value: production
       - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
         value: "true"
       - key: PUPPETEER_EXECUTABLE_PATH
-        value: /usr/bin/chromium-browser
-    plan: free
+        value: /usr/bin/chromium
+      - key: DISABLE_GPU
+        value: "true"
     autoDeploy: true
     healthCheckPath: /health
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
