@@ -1,6 +1,41 @@
+# Dependencias
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Sesiones de WhatsApp (NO SUBIR NUNCA)
 sessions/
+*.session.json
+*.session/
+.wwebjs_auth/
+
+# Logs del bot
 logs/
-.env
-.DS_Store
 *.log
+*.txt
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos de entorno
+.env
+.env.local
+.env.production
+
+# Puppeteer cache
+.puppeteer/
+.local-chromium/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Otros
+build/
+dist/
+coverage/
