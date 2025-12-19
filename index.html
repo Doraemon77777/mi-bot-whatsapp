@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WhatsApp Bot - Status</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .status {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .online {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .commands {
+            margin-top: 20px;
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="status">
+        <h1> WhatsApp Bot Status</h1>
+        <p class="online">Bot en línea y funcionando</p>
+        <p>Este bot permite mencionar y notificar en grupos de WhatsApp.</p>
+        
+        <div class="commands">
+            <h3>Comandos disponibles:</h3>
+            <ul>
+                <li><strong>.todo @número mensaje</strong> - Menciona usuarios</li>
+                <li><strong>.notify mensaje</strong> - Notifica a todo el grupo</li>
+                <li><strong>.help</strong> - Muestra ayuda</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
