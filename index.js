@@ -1,17 +1,25 @@
+// ============================================
+// BOT DE WHATSAPP COMPLETO - SOLUCIONADO PARA RENDER
+// ============================================
+
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const fs = require('fs');
 const path = require('path');
 
+// IMPORTACIÓN CORREGIDA PARA RENDER
+const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer-core');
+
 // Configuración
 const CONFIG = {
     botName: "Bot de Notificaciones",
     prefix: ".",
-    maxMentions: 10, // Máximo de menciones por comando
-    notificationCooldown: 30000 // 30 segundos de cooldown entre notificaciones
+    maxMentions: 10,
+    notificationCooldown: 30000
 };
 
-// Sistema de logs mejorado
+// Sistema de logs
 class Logger {
     static log(message, type = 'INFO') {
         const timestamp = new Date().toLocaleString('es-MX');
@@ -42,32 +50,73 @@ class Logger {
     }
 }
 
-// Inicializar cliente
-const client = new Client({
-    authStrategy: new LocalAuth({
-        clientId: "whatsapp-bot",
-        dataPath: path.join(__dirname, 'sessions')
-    }),
-    puppeteer: {
-        headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process',
-            '--disable-gpu',
-            '--use-gl=egl'
-        ],
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null
-    },
-    webVersionCache: {
-        type: 'remote',
-        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
+// ============================================
+// CONFIGURACIÓN CORREGIDA DEL CLIENTE
+// ============================================
+
+// Función para obtener configuración de Puppeteer compatible con Render
+async function getPuppeteerConfig() {
+    try {
+        Logger.info('Configurando Puppeteer para Render...');
+        
+        // Configuración específica para Render
+        const executablePath = await chromium.executablePath();
+        
+        Logger.info(`Ruta de Chromium: ${executablePath}`);
+        
+        return {
+            executablePath: executablePath,
+            args: [
+                ...chromium.args,
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--disable-gpu',
+                '--single-process',
+                '--disable-setuid-sandbox',
+                '--disable-features=VizDisplayCompositor',
+                '--window-size=1920,1080'
+            ],
+            headless: chromium.headless,
+            ignoreHTTPSErrors: true,
+            timeout: 60000
+        };
+    } catch (error) {
+        Logger.error(`Error configurando Puppeteer: ${error.message}`);
+        throw error;
     }
-});
+}
+
+// Variable global para el cliente
+let client;
+
+// Función para inicializar el cliente
+async function initializeClient() {
+    try {
+        const puppeteerConfig = await getPuppeteerConfig();
+        
+        const newClient = new Client({
+            authStrategy: new LocalAuth({
+                clientId: "whatsapp-bot",
+                dataPath: path.join(__dirname, 'sessions'),
+                backupSyncIntervalMs: 300000
+            }),
+            puppeteer: puppeteerConfig,
+            webVersionCache: {
+                type: 'remote',
+                remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
+            }
+        });
+        
+        return newClient;
+    } catch (error) {
+        Logger.error(`Error inicializando cliente: ${error.message}`);
+        throw error;
+    }
+}
 
 // Cache para cooldowns
 const cooldowns = new Map();
@@ -83,7 +132,7 @@ function checkCooldown(chatId, command) {
         const remaining = lastUsed + cooldownTime - now;
         
         if (remaining > 0) {
-            return Math.ceil(remaining / 1000); // Segundos restantes
+            return Math.ceil(remaining / 1000);
         }
     }
     
@@ -103,19 +152,14 @@ function extractMentions(text) {
     
     if (!matches) return [];
     
-    // Limitar el número de menciones
     const limitedMatches = matches.slice(0, CONFIG.maxMentions);
-    
-    // Extraer solo los números
-    return limitedMatches.map(match => match.substring(1)); // Remover el @
+    return limitedMatches.map(match => match.substring(1));
 }
 
 // Formatear número para ID de WhatsApp
 function formatNumberForId(number) {
-    // Limpiar el número (solo dígitos)
     let cleanNumber = number.replace(/\D/g, '');
     
-    // Si no empieza con código de país, asumir México (52)
     if (!cleanNumber.startsWith('1') && !cleanNumber.startsWith('52') && 
         !cleanNumber.startsWith('55') && !cleanNumber.startsWith('57')) {
         cleanNumber = '52' + cleanNumber;
@@ -129,32 +173,26 @@ async function handleTodoCommand(chat, messageText, sender, originalMessage) {
     try {
         Logger.info(`Comando .todo recibido de ${sender} en grupo ${chat.name}`);
         
-        // Verificar cooldown
         const cooldownLeft = checkCooldown(chat.id._serialized, '.todo');
         if (cooldownLeft > 0) {
             await originalMessage.reply(`⏳ Espera ${cooldownLeft} segundos antes de usar .todo de nuevo.`);
             return;
         }
         
-        // Extraer el texto después del comando
         const text = messageText.substring('.todo'.length).trim();
         
         if (!text) {
-            await originalMessage.reply('❌ Formato incorrecto. Usa:\n.todo @número mensaje\n\nEjemplo:\n.todo @551234567890 Hola, revisa esto');
+            await originalMessage.reply('❌ Formato: .todo @número mensaje\nEjemplo: .todo @551234567890 Hola');
             return;
         }
         
-        // Buscar menciones
         const numbers = extractMentions(text);
         
         if (numbers.length === 0) {
-            await originalMessage.reply('❌ No encontré menciones (@). Usa:\n.todo @número mensaje');
+            await originalMessage.reply('❌ No encontré menciones (@). Usa: .todo @número mensaje');
             return;
         }
         
-        Logger.info(`Encontradas ${numbers.length} menciones: ${numbers.join(', ')}`);
-        
-        // Obtener contactos
         const contacts = [];
         const failedNumbers = [];
         
@@ -175,40 +213,32 @@ async function handleTodoCommand(chat, messageText, sender, originalMessage) {
         }
         
         if (contacts.length === 0) {
-            await originalMessage.reply('❌ No se encontraron usuarios válidos para mencionar.');
+            await originalMessage.reply('❌ No se encontraron usuarios válidos.');
             return;
         }
         
-        // Crear texto del mensaje (mantener las @originales)
         let finalText = text;
-        
-        // Reemplazar cada @número con @[número formateado] para menciones
         for (let i = 0; i < contacts.length; i++) {
             const originalNumber = numbers[i];
             const formattedNumber = contacts[i].number;
             finalText = finalText.replace(`@${originalNumber}`, `@${formattedNumber}`);
         }
         
-        // Enviar mensaje con menciones
         await chat.sendMessage(finalText, {
             mentions: contacts
         });
         
-        // Actualizar cooldown
         updateCooldown(chat.id._serialized, '.todo');
         
-        // Enviar confirmación si hubo números fallidos
         if (failedNumbers.length > 0) {
             await originalMessage.reply(`✅ Menciones enviadas a ${contacts.length} usuario(s).\n❌ No se encontraron: ${failedNumbers.join(', ')}`);
         } else {
             await originalMessage.reply(`✅ Menciones enviadas a ${contacts.length} usuario(s).`);
         }
         
-        Logger.info(`Menciones enviadas exitosamente a ${contacts.length} usuarios`);
-        
     } catch (error) {
-        Logger.error(`Error en comando .todo: ${error.message}`);
-        await originalMessage.reply('❌ Error al procesar el comando. Intenta de nuevo.');
+        Logger.error(`Error en .todo: ${error.message}`);
+        await originalMessage.reply('❌ Error al procesar el comando.');
     }
 }
 
@@ -217,33 +247,27 @@ async function handleNotifyCommand(chat, messageText, sender, originalMessage) {
     try {
         Logger.info(`Comando .notify recibido de ${sender} en grupo ${chat.name}`);
         
-        // Verificar cooldown
         const cooldownLeft = checkCooldown(chat.id._serialized, '.notify');
         if (cooldownLeft > 0) {
             await originalMessage.reply(`⏳ Espera ${cooldownLeft} segundos antes de usar .notify de nuevo.`);
             return;
         }
         
-        // Extraer el mensaje de notificación
         const notificationText = messageText.substring('.notify'.length).trim();
         
         if (!notificationText) {
-            await originalMessage.reply('❌ Escribe el mensaje de notificación. Usa:\n.notify tu mensaje importante\n\nEjemplo:\n.notify Reunión mañana a las 10 AM');
+            await originalMessage.reply('❌ Escribe el mensaje. Usa: .notify tu mensaje importante');
             return;
         }
         
-        // Obtener todos los participantes del grupo
         await chat.fetchParticipants();
         const participants = chat.participants;
         
         if (!participants || participants.length === 0) {
-            await originalMessage.reply('❌ No se pudieron obtener los miembros del grupo.');
+            await originalMessage.reply('❌ No se pudieron obtener los miembros.');
             return;
         }
         
-        Logger.info(`Grupo ${chat.name} tiene ${participants.length} participantes`);
-        
-        // Obtener contactos de los participantes
         const contacts = [];
         for (const participant of participants) {
             try {
@@ -252,34 +276,28 @@ async function handleNotifyCommand(chat, messageText, sender, originalMessage) {
                     contacts.push(contact);
                 }
             } catch (error) {
-                Logger.warn(`Error obteniendo contacto ${participant.id._serialized}: ${error.message}`);
+                Logger.warn(`Error obteniendo contacto: ${error.message}`);
             }
         }
         
         if (contacts.length === 0) {
-            await originalMessage.reply('❌ No se pudieron obtener los contactos del grupo.');
+            await originalMessage.reply('❌ No se pudieron obtener los contactos.');
             return;
         }
         
-        // Crear mensaje de notificación
         const notificationMessage = `📢 *NOTIFICACIÓN PARA TODOS*\n\n${notificationText}\n\n_Esta notificación fue enviada a todos los miembros del grupo._`;
         
-        // Enviar notificación
         await chat.sendMessage(notificationMessage, {
             mentions: contacts
         });
         
-        // Actualizar cooldown
         updateCooldown(chat.id._serialized, '.notify');
         
-        // Confirmar envío
-        await originalMessage.reply(`✅ Notificación enviada a ${contacts.length} miembros del grupo.`);
-        
-        Logger.info(`Notificación enviada a ${contacts.length} miembros en grupo ${chat.name}`);
+        await originalMessage.reply(`✅ Notificación enviada a ${contacts.length} miembros.`);
         
     } catch (error) {
-        Logger.error(`Error en comando .notify: ${error.message}`);
-        await originalMessage.reply('❌ Error al enviar la notificación. Intenta de nuevo.');
+        Logger.error(`Error en .notify: ${error.message}`);
+        await originalMessage.reply('❌ Error al enviar la notificación.');
     }
 }
 
@@ -287,33 +305,22 @@ async function handleNotifyCommand(chat, messageText, sender, originalMessage) {
 async function handleHelpCommand(chat, originalMessage) {
     const helpMessage = `🤖 *BOT DE NOTIFICACIONES* 🤖
 
-*COMANDOS DISPONIBLES:*
+*COMANDOS:*
 
 *.todo @número mensaje*
-- Menciona a usuarios específicos
-- Puedes mencionar varios usuarios: .todo @551234567890 @551234567891 Hola a ambos
-- Máximo ${CONFIG.maxMentions} menciones por comando
+- Menciona usuarios
+- Ejemplo: .todo @551234567890 Revisa esto
 
 *.notify mensaje*
-- Notifica a TODOS los miembros del grupo
-- Incluye una mención a cada miembro
-- Cooldown: ${CONFIG.notificationCooldown / 1000} segundos
+- Notifica a TODOS
+- Ejemplo: .notify Reunión mañana
 
 *.help*
-- Muestra este mensaje de ayuda
-
-*EJEMPLOS:*
-\`\`\`
-.todo @551234567890 Por favor revisa el documento
-.todo @551234567890 @551234567891 Reunión hoy
-.notify Recordatorio: Pago mensual hoy
-.notify Reunión importante mañana a las 10 AM
-\`\`\`
+- Muestra esta ayuda
 
 *NOTAS:*
-- Usa @ seguido del número (ej: @551234567890)
-- Sin espacios entre @ y el número
-- El bot funciona solo en grupos`;
+- Usa @ seguido del número (sin espacios)
+- Máximo ${CONFIG.maxMentions} menciones por comando`;
     
     await originalMessage.reply(helpMessage);
 }
@@ -322,107 +329,107 @@ async function handleHelpCommand(chat, originalMessage) {
 // EVENTOS DEL CLIENTE
 // ============================================
 
-// QR Code
-client.on('qr', (qr) => {
-    Logger.info('QR Code generado');
-    console.log('\n' + '='.repeat(60));
-    console.log('🚀 ESCANEA ESTE CÓDIGO QR CON WHATSAPP:');
-    console.log('='.repeat(60));
-    qrcode.generate(qr, { small: true });
-    console.log('='.repeat(60));
-    console.log('1. Abre WhatsApp en tu teléfono');
-    console.log('2. Toca los 3 puntos → Dispositivos vinculados');
-    console.log('3. Escanea el código QR');
-    console.log('='.repeat(60) + '\n');
-});
+// Función para configurar eventos
+function setupClientEvents(clientInstance) {
+    // QR Code
+    clientInstance.on('qr', (qr) => {
+        Logger.info('QR Code generado');
+        console.log('\n' + '='.repeat(60));
+        console.log('🚀 ESCANEA ESTE CÓDIGO QR CON WHATSAPP:');
+        console.log('='.repeat(60));
+        qrcode.generate(qr, { small: true });
+        console.log('='.repeat(60));
+        console.log('1. Abre WhatsApp en tu teléfono');
+        console.log('2. Menú → Dispositivos vinculados');
+        console.log('3. Escanea el código QR');
+        console.log('='.repeat(60) + '\n');
+    });
 
-// Cliente listo
-client.on('ready', () => {
-    Logger.info('Cliente de WhatsApp listo y autenticado');
-    console.log('\n' + '='.repeat(60));
-    console.log('✅ BOT INICIADO CORRECTAMENTE');
-    console.log('='.repeat(60));
-    console.log(`Nombre: ${client.info.pushname}`);
-    console.log(`Número: ${client.info.wid.user}`);
-    console.log(`Prefijo: ${CONFIG.prefix}`);
-    console.log('='.repeat(60));
-    console.log('📋 COMANDOS DISPONIBLES:');
-    console.log('='.repeat(60));
-    console.log(`${CONFIG.prefix}todo @número mensaje`);
-    console.log('  → Menciona usuarios específicos');
-    console.log('');
-    console.log(`${CONFIG.prefix}notify mensaje`);
-    console.log('  → Notifica a todo el grupo');
-    console.log('');
-    console.log(`${CONFIG.prefix}help`);
-    console.log('  → Muestra ayuda');
-    console.log('='.repeat(60));
-    console.log('💡 Agrega este bot a tus grupos de WhatsApp');
-    console.log('='.repeat(60) + '\n');
-});
+    // Cliente listo
+    clientInstance.on('ready', () => {
+        Logger.info('Cliente de WhatsApp listo y autenticado');
+        console.log('\n' + '='.repeat(60));
+        console.log('✅ BOT INICIADO CORRECTAMENTE');
+        console.log('='.repeat(60));
+        console.log(`Nombre: ${clientInstance.info.pushname}`);
+        console.log(`Número: ${clientInstance.info.wid.user}`);
+        console.log(`Prefijo: ${CONFIG.prefix}`);
+        console.log('='.repeat(60));
+        console.log('📋 COMANDOS DISPONIBLES:');
+        console.log('='.repeat(60));
+        console.log(`${CONFIG.prefix}todo @número mensaje`);
+        console.log(`${CONFIG.prefix}notify mensaje`);
+        console.log(`${CONFIG.prefix}help`);
+        console.log('='.repeat(60));
+        console.log('💡 Agrega este bot a tus grupos');
+        console.log('='.repeat(60) + '\n');
+    });
 
-// Manejar mensajes
-client.on('message', async (message) => {
-    try {
-        // Ignorar mensajes propios del bot
-        if (message.fromMe) return;
-        
-        // Obtener información del mensaje
-        const chat = await message.getChat();
-        const messageText = message.body.trim();
-        const sender = message.author || message.from;
-        
-        // Solo procesar en grupos
-        if (!chat.isGroup) {
-            if (messageText.toLowerCase() === '.help') {
+    // Manejar mensajes
+    clientInstance.on('message', async (message) => {
+        try {
+            if (message.fromMe) return;
+            
+            const chat = await message.getChat();
+            const messageText = message.body.trim();
+            const sender = message.author || message.from;
+            
+            Logger.info(`Mensaje en grupo: ${messageText.substring(0, 50)}...`);
+            
+            if (!chat.isGroup) {
+                if (messageText.toLowerCase() === '.help') {
+                    await handleHelpCommand(chat, message);
+                }
+                return;
+            }
+            
+            if (messageText.toLowerCase().startsWith('.todo ')) {
+                await handleTodoCommand(chat, messageText, sender, message);
+            } 
+            else if (messageText.toLowerCase().startsWith('.notify ')) {
+                await handleNotifyCommand(chat, messageText, sender, message);
+            }
+            else if (messageText.toLowerCase() === '.help') {
                 await handleHelpCommand(chat, message);
             }
-            return;
+            
+        } catch (error) {
+            Logger.error(`Error procesando mensaje: ${error.message}`);
         }
-        
-        Logger.info(`Mensaje en grupo "${chat.name}": ${messageText.substring(0, 50)}...`);
-        
-        // Procesar comandos
-        if (messageText.toLowerCase().startsWith('.todo ')) {
-            await handleTodoCommand(chat, messageText, sender, message);
-        } 
-        else if (messageText.toLowerCase().startsWith('.notify ')) {
-            await handleNotifyCommand(chat, messageText, sender, message);
-        }
-        else if (messageText.toLowerCase() === '.help') {
-            await handleHelpCommand(chat, message);
-        }
-        
-    } catch (error) {
-        Logger.error(`Error procesando mensaje: ${error.message}`);
-    }
-});
+    });
 
-// Manejar errores
-client.on('auth_failure', (msg) => {
-    Logger.error(`Fallo de autenticación: ${msg}`);
-    console.log(' ERROR DE AUTENTICACIÓN');
-    console.log('Reinicia el bot y escanea el QR nuevamente.');
-});
+    // Manejar errores
+    clientInstance.on('auth_failure', (msg) => {
+        Logger.error(`Fallo de autenticación: ${msg}`);
+        console.log('❌ ERROR DE AUTENTICACIÓN');
+        console.log('Reinicia el bot y escanea el QR nuevamente.');
+    });
 
-client.on('disconnected', (reason) => {
-    Logger.warn(`Cliente desconectado: ${reason}`);
-    console.log('⚠️ Bot desconectado. Reconectando en 5 segundos...');
-    
-    setTimeout(() => {
-        client.initialize();
-    }, 5000);
-});
+    clientInstance.on('disconnected', (reason) => {
+        Logger.warn(`Cliente desconectado: ${reason}`);
+        console.log('⚠️ Bot desconectado. Reconectando en 10 segundos...');
+        
+        setTimeout(async () => {
+            try {
+                await startBot();
+            } catch (error) {
+                Logger.error(`Error al reconectar: ${error.message}`);
+            }
+        }, 10000);
+    });
+
+    return clientInstance;
+}
 
 // ============================================
-// INICIALIZACIÓN PARA RENDER
+// INICIALIZACIÓN
 // ============================================
 
 async function startBot() {
     try {
         Logger.info('Iniciando bot de WhatsApp...');
         
-        // Verificar y crear carpetas necesarias
+        // Crear carpetas necesarias
         const folders = ['sessions', 'logs'];
         folders.forEach(folder => {
             const folderPath = path.join(__dirname, folder);
@@ -432,41 +439,104 @@ async function startBot() {
             }
         });
         
+        // Verificar si ya hay un cliente activo
+        if (client) {
+            try {
+                await client.destroy();
+                Logger.info('Cliente anterior destruido');
+            } catch (error) {
+                Logger.warn(`Error destruyendo cliente anterior: ${error.message}`);
+            }
+        }
+        
+        // Inicializar nuevo cliente
+        Logger.info('Creando nuevo cliente...');
+        client = await initializeClient();
+        
+        // Configurar eventos
+        setupClientEvents(client);
+        
         // Iniciar cliente
+        Logger.info('Inicializando cliente...');
         await client.initialize();
         
         Logger.info('Bot iniciado exitosamente');
         
     } catch (error) {
         Logger.error(`Error al iniciar bot: ${error.message}`);
-        console.log(' ERROR CRÍTICO AL INICIAR EL BOT');
+        console.log('\n❌ ERROR CRÍTICO AL INICIAR EL BOT');
         console.log('Detalles:', error.message);
-        process.exit(1);
+        
+        if (error.message.includes('Failed to launch the browser process')) {
+            console.log('\n🔧 DIAGNÓSTICO DEL ERROR:');
+            console.log('1. El navegador Chromium no se encuentra en Render');
+            console.log('2. Esto se soluciona usando @sparticuz/chromium');
+            console.log('3. Verifica que tu package.json tenga:');
+            console.log('   - "@sparticuz/chromium": "^121.0.0"');
+            console.log('   - "puppeteer-core": "^21.0.0"');
+            console.log('\n🔄 REALIZANDO RECONEXIÓN EN 30 SEGUNDOS...');
+            
+            setTimeout(() => {
+                startBot();
+            }, 30000);
+        } else {
+            console.log('\n🔄 INTENTANDO NUEVAMENTE EN 60 SEGUNDOS...');
+            setTimeout(() => {
+                startBot();
+            }, 60000);
+        }
     }
 }
 
-// Manejar señales de terminación
+// Manejar señales
 process.on('SIGINT', () => {
-    console.log('\n Apagando bot...');
-    client.destroy();
-    console.log(' Bot apagado correctamente');
+    console.log('\n🛑 Apagando bot...');
+    if (client) {
+        client.destroy();
+    }
+    console.log('✅ Bot apagado correctamente');
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-    console.log('\n Recibida señal de terminación...');
-    client.destroy();
-    console.log(' Bot apagado correctamente');
+    console.log('\n🛑 Recibida señal de terminación...');
+    if (client) {
+        client.destroy();
+    }
+    console.log('✅ Bot apagado correctamente');
     process.exit(0);
 });
 
 // Iniciar el bot
 startBot();
 
-// Mantener el proceso activo para Render
+// Heartbeat para mantener activo
 setInterval(() => {
-    // Heartbeat para mantener el proceso activo
-    if (Date.now() % 60000 < 1000) { // Cada minuto
-        Logger.info('Bot activo y funcionando...');
+    if (Date.now() % 60000 < 1000) {
+        Logger.info('🤖 Bot activo y funcionando...');
+        
+        // Verificar estado del cliente
+        if (client && client.pupBrowser && !client.pupBrowser.isConnected()) {
+            Logger.warn('Navegador desconectado, reconectando...');
+            startBot();
+        }
     }
 }, 1000);
+
+// Función para obtener el cliente (para uso externo si es necesario)
+function getClient() {
+    return client;
+}
+
+// Exportar para pruebas (opcional)
+if (require.main === module) {
+    // Este archivo se ejecuta directamente
+    console.log('🚀 Iniciando bot WhatsApp desde línea de comandos...');
+} else {
+    // Este archivo se importa como módulo
+    module.exports = {
+        getClient,
+        startBot,
+        CONFIG
+    };
+}
