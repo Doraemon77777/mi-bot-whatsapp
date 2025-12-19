@@ -332,18 +332,74 @@ async function handleHelpCommand(chat, originalMessage) {
 // Función para configurar eventos
 function setupClientEvents(clientInstance) {
     // QR Code
-    clientInstance.on('qr', (qr) => {
-        Logger.info('QR Code generado');
-        console.log('\n' + '='.repeat(60));
-        console.log('🚀 ESCANEA ESTE CÓDIGO QR CON WHATSAPP:');
-        console.log('='.repeat(60));
-        qrcode.generate(qr, { small: true });
-        console.log('='.repeat(60));
-        console.log('1. Abre WhatsApp en tu teléfono');
-        console.log('2. Menú → Dispositivos vinculados');
-        console.log('3. Escanea el código QR');
-        console.log('='.repeat(60) + '\n');
-    });
+   // QR Code - VERSIÓN MEJORADA PARA RENDER
+clientInstance.on('qr', (qr) => {
+    Logger.info('QR Code generado');
+    
+    // SOLUCIÓN: Generar enlace para escanear desde el teléfono
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
+    const qrTextUrl = `https://qrcode-monkey.com/qr-code-text/?text=${encodeURIComponent(qr)}`;
+    
+    console.log('\n' + '='.repeat(70));
+    console.log('🚀 WHATSAPP BOT - VINCULAR DISPOSITIVO');
+    console.log('='.repeat(70));
+    
+    console.log('\n📱 MÉTODO 1 (RECOMENDADO - MÁS FÁCIL):');
+    console.log('1. Abre ESTE ENLACE en tu teléfono:');
+    console.log(`🔗 ${qrUrl}`);
+    console.log('2. Verás una imagen del código QR');
+    console.log('3. Escanéala con WhatsApp');
+    console.log('   (WhatsApp → Menú → Dispositivos vinculados)');
+    
+    console.log('\n📱 MÉTODO 2 (ALTERNATIVO):');
+    console.log('1. Abre este enlace en tu teléfono:');
+    console.log(`🔗 ${qrTextUrl}`);
+    console.log('2. La página generará automáticamente el QR');
+    console.log('3. Escanea la imagen generada');
+    
+    console.log('\n📱 MÉTODO 3 (TERMINAL - si quieres intentar):');
+    console.log('Intenta escanear este código directamente:');
+    console.log('-'.repeat(50));
+    
+    // Intentar mostrar QR en terminal (pero con mejor formato)
+    try {
+        // Generar QR más limpio
+        const cleanQR = qr.replace(/\s+/g, ' ');
+        const lines = cleanQR.split('\n');
+        
+        // Mostrar cada línea sin espacios extra
+        lines.forEach(line => {
+            console.log(line.trim());
+        });
+    } catch (error) {
+        console.log('(Usa los métodos 1 o 2 para mejor resultado)');
+    }
+    
+    console.log('-'.repeat(50));
+    console.log('\n⏰ Este QR es válido por 2 minutos');
+    console.log('💡 Guarda estos enlaces si necesitas tiempo');
+    console.log('='.repeat(70) + '\n');
+    
+    // Guardar el enlace en un archivo por si se pierde
+    try {
+        const fs = require('fs');
+        const qrInfo = `
+🕐 Generado: ${new Date().toLocaleString()}
+🔗 Enlace directo: ${qrUrl}
+🔗 Generador: ${qrTextUrl}
+📱 Instrucciones:
+1. Abre el enlace en tu teléfono
+2. Verás el código QR
+3. WhatsApp → Menú → Dispositivos vinculados
+4. Escanea el código
+        `.trim();
+        
+        fs.writeFileSync('qr-info.txt', qrInfo);
+        Logger.info('Información del QR guardada en qr-info.txt');
+    } catch (error) {
+        // Ignorar si falla
+    }
+});
 
     // Cliente listo
     clientInstance.on('ready', () => {
@@ -553,3 +609,4 @@ app.get('/', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor web escuchando en el puerto ${PORT}`);
 });
+
