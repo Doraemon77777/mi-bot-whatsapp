@@ -8,6 +8,6 @@ Bot simple para grupos de WhatsApp.
 ## Instalación:
 ```bash
 npm install
-
 npm start
+
 
