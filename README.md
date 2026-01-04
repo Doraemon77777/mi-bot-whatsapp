@@ -5,8 +5,10 @@ Bot para grupos de WhatsApp.
 - `.notify mensaje` - Notifica a todos
 ## Instalación:
 ```bash
+En cmd
 npm install
 npm start
+
 
 
 
