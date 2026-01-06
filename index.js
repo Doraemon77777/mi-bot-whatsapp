@@ -175,21 +175,21 @@ async function handleTodoCommand(chat, messageText, sender, originalMessage) {
         
         const cooldownLeft = checkCooldown(chat.id._serialized, '.todo');
         if (cooldownLeft > 0) {
-            await originalMessage.reply(`⏳ Espera ${cooldownLeft} segundos antes de usar .todo de nuevo.`);
+            await originalMessage.reply(` Espera ${cooldownLeft} segundos antes de usar .todo de nuevo.`);
             return;
         }
         
         const text = messageText.substring('.todo'.length).trim();
         
         if (!text) {
-            await originalMessage.reply('❌ Formato: .todo @número mensaje\nEjemplo: .todo @551234567890 Hola');
+            await originalMessage.reply(' Formato: .todo @número mensaje\nEjemplo: .todo @551234567890 Hola');
             return;
         }
         
         const numbers = extractMentions(text);
         
         if (numbers.length === 0) {
-            await originalMessage.reply('❌ No encontré menciones (@). Usa: .todo @número mensaje');
+            await originalMessage.reply(' No encontré menciones (@). Usa: .todo @número mensaje');
             return;
         }
         
@@ -213,7 +213,7 @@ async function handleTodoCommand(chat, messageText, sender, originalMessage) {
         }
         
         if (contacts.length === 0) {
-            await originalMessage.reply('❌ No se encontraron usuarios válidos.');
+            await originalMessage.reply(' No se encontraron usuarios válidos.');
             return;
         }
         
@@ -231,14 +231,14 @@ async function handleTodoCommand(chat, messageText, sender, originalMessage) {
         updateCooldown(chat.id._serialized, '.todo');
         
         if (failedNumbers.length > 0) {
-            await originalMessage.reply(`✅ Menciones enviadas a ${contacts.length} usuario(s).\n❌ No se encontraron: ${failedNumbers.join(', ')}`);
+            await originalMessage.reply(` Menciones enviadas a ${contacts.length} usuario(s).\n No se encontraron: ${failedNumbers.join(', ')}`);
         } else {
-            await originalMessage.reply(`✅ Menciones enviadas a ${contacts.length} usuario(s).`);
+            await originalMessage.reply(`Menciones enviadas a ${contacts.length} usuario(s).`);
         }
         
     } catch (error) {
         Logger.error(`Error en .todo: ${error.message}`);
-        await originalMessage.reply('❌ Error al procesar el comando.');
+        await originalMessage.reply(' Error al procesar el comando.');
     }
 }
 
@@ -249,14 +249,14 @@ async function handleNotifyCommand(chat, messageText, sender, originalMessage) {
         
         const cooldownLeft = checkCooldown(chat.id._serialized, '.notify');
         if (cooldownLeft > 0) {
-            await originalMessage.reply(`⏳ Espera ${cooldownLeft} segundos antes de usar .notify de nuevo.`);
+            await originalMessage.reply(` Espera ${cooldownLeft} segundos antes de usar .notify de nuevo.`);
             return;
         }
         
         const notificationText = messageText.substring('.notify'.length).trim();
         
         if (!notificationText) {
-            await originalMessage.reply('❌ Escribe el mensaje. Usa: .notify tu mensaje importante');
+            await originalMessage.reply(' Escribe el mensaje. Usa: .notify tu mensaje importante');
             return;
         }
         
@@ -264,7 +264,7 @@ async function handleNotifyCommand(chat, messageText, sender, originalMessage) {
         const participants = chat.participants;
         
         if (!participants || participants.length === 0) {
-            await originalMessage.reply('❌ No se pudieron obtener los miembros.');
+            await originalMessage.reply(' No se pudieron obtener los miembros.');
             return;
         }
         
@@ -281,11 +281,11 @@ async function handleNotifyCommand(chat, messageText, sender, originalMessage) {
         }
         
         if (contacts.length === 0) {
-            await originalMessage.reply('❌ No se pudieron obtener los contactos.');
+            await originalMessage.reply(' No se pudieron obtener los contactos.');
             return;
         }
         
-        const notificationMessage = `📢 *NOTIFICACIÓN PARA TODOS*\n\n${notificationText}\n\n_Esta notificación fue enviada a todos los miembros del grupo._`;
+        const notificationMessage = ` *NOTIFICACIÓN PARA TODOS*\n\n${notificationText}\n\n_Esta notificación fue enviada a todos los miembros del grupo._`;
         
         await chat.sendMessage(notificationMessage, {
             mentions: contacts
@@ -293,7 +293,7 @@ async function handleNotifyCommand(chat, messageText, sender, originalMessage) {
         
         updateCooldown(chat.id._serialized, '.notify');
         
-        await originalMessage.reply(`✅ Notificación enviada a ${contacts.length} miembros.`);
+        await originalMessage.reply(`Notificación enviada a ${contacts.length} miembros.`);
         
     } catch (error) {
         Logger.error(`Error en .notify: ${error.message}`);
@@ -303,7 +303,7 @@ async function handleNotifyCommand(chat, messageText, sender, originalMessage) {
 
 // COMANDO .help - Mostrar ayuda
 async function handleHelpCommand(chat, originalMessage) {
-    const helpMessage = `🤖 *BOT DE NOTIFICACIONES* 🤖
+    const helpMessage = `*BOT DE NOTIFICACIONES* 
 
 *COMANDOS:*
 
@@ -336,38 +336,35 @@ function setupClientEvents(clientInstance) {
 clientInstance.on('qr', (qr) => {
     Logger.info('QR Code generado');
     
-    // SOLUCIÓN: Generar enlace para escanear desde el teléfono
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qr)}`;
     const qrTextUrl = `https://qrcode-monkey.com/qr-code-text/?text=${encodeURIComponent(qr)}`;
     
     console.log('\n' + '='.repeat(70));
-    console.log('🚀 WHATSAPP BOT - VINCULAR DISPOSITIVO');
+    console.log(' WHATSAPP BOT - VINCULAR DISPOSITIVO');
     console.log('='.repeat(70));
     
-    console.log('\n📱 MÉTODO 1 (RECOMENDADO - MÁS FÁCIL):');
+    console.log('\n MÉTODO 1 (RECOMENDADO - MÁS FÁCIL):');
     console.log('1. Abre ESTE ENLACE en tu teléfono:');
     console.log(`🔗 ${qrUrl}`);
     console.log('2. Verás una imagen del código QR');
     console.log('3. Escanéala con WhatsApp');
     console.log('   (WhatsApp → Menú → Dispositivos vinculados)');
     
-    console.log('\n📱 MÉTODO 2 (ALTERNATIVO):');
+    console.log('\n MÉTODO 2 (ALTERNATIVO):');
     console.log('1. Abre este enlace en tu teléfono:');
     console.log(`🔗 ${qrTextUrl}`);
     console.log('2. La página generará automáticamente el QR');
     console.log('3. Escanea la imagen generada');
     
-    console.log('\n📱 MÉTODO 3 (TERMINAL - si quieres intentar):');
+    console.log('\n MÉTODO 3 (TERMINAL - si quieres intentar):');
     console.log('Intenta escanear este código directamente:');
     console.log('-'.repeat(50));
     
-    // Intentar mostrar QR en terminal (pero con mejor formato)
+    
     try {
-        // Generar QR más limpio
         const cleanQR = qr.replace(/\s+/g, ' ');
         const lines = cleanQR.split('\n');
         
-        // Mostrar cada línea sin espacios extra
         lines.forEach(line => {
             console.log(line.trim());
         });
@@ -376,18 +373,16 @@ clientInstance.on('qr', (qr) => {
     }
     
     console.log('-'.repeat(50));
-    console.log('\n⏰ Este QR es válido por 2 minutos');
-    console.log('💡 Guarda estos enlaces si necesitas tiempo');
+    console.log('\n Este QR es válido por 2 minutos');
+    console.log(' Guarda estos enlaces si necesitas tiempo');
     console.log('='.repeat(70) + '\n');
-    
-    // Guardar el enlace en un archivo por si se pierde
     try {
         const fs = require('fs');
         const qrInfo = `
-🕐 Generado: ${new Date().toLocaleString()}
-🔗 Enlace directo: ${qrUrl}
-🔗 Generador: ${qrTextUrl}
-📱 Instrucciones:
+ Generado: ${new Date().toLocaleString()}
+ Enlace directo: ${qrUrl}
+ Generador: ${qrTextUrl}
+ Instrucciones:
 1. Abre el enlace en tu teléfono
 2. Verás el código QR
 3. WhatsApp → Menú → Dispositivos vinculados
@@ -397,31 +392,29 @@ clientInstance.on('qr', (qr) => {
         fs.writeFileSync('qr-info.txt', qrInfo);
         Logger.info('Información del QR guardada en qr-info.txt');
     } catch (error) {
-        // Ignorar si falla
+    
     }
 });
 
-    // Cliente listo
     clientInstance.on('ready', () => {
         Logger.info('Cliente de WhatsApp listo y autenticado');
         console.log('\n' + '='.repeat(60));
-        console.log('✅ BOT INICIADO CORRECTAMENTE');
+        console.log(' BOT INICIADO CORRECTAMENTE');
         console.log('='.repeat(60));
         console.log(`Nombre: ${clientInstance.info.pushname}`);
         console.log(`Número: ${clientInstance.info.wid.user}`);
         console.log(`Prefijo: ${CONFIG.prefix}`);
         console.log('='.repeat(60));
-        console.log('📋 COMANDOS DISPONIBLES:');
+        console.log(' COMANDOS DISPONIBLES:');
         console.log('='.repeat(60));
         console.log(`${CONFIG.prefix}todo @número mensaje`);
         console.log(`${CONFIG.prefix}notify mensaje`);
         console.log(`${CONFIG.prefix}help`);
         console.log('='.repeat(60));
-        console.log('💡 Agrega este bot a tus grupos');
+        console.log(' Agrega este bot a tus grupos');
         console.log('='.repeat(60) + '\n');
     });
 
-    // Manejar mensajes
     clientInstance.on('message', async (message) => {
         try {
             if (message.fromMe) return;
@@ -457,13 +450,13 @@ clientInstance.on('qr', (qr) => {
     // Manejar errores
     clientInstance.on('auth_failure', (msg) => {
         Logger.error(`Fallo de autenticación: ${msg}`);
-        console.log('❌ ERROR DE AUTENTICACIÓN');
+        console.log('ERROR DE AUTENTICACIÓN');
         console.log('Reinicia el bot y escanea el QR nuevamente.');
     });
 
     clientInstance.on('disconnected', (reason) => {
         Logger.warn(`Cliente desconectado: ${reason}`);
-        console.log('⚠️ Bot desconectado. Reconectando en 10 segundos...');
+        console.log(' Bot desconectado. Reconectando en 10 segundos...');
         
         setTimeout(async () => {
             try {
@@ -485,7 +478,6 @@ async function startBot() {
     try {
         Logger.info('Iniciando bot de WhatsApp...');
         
-        // Crear carpetas necesarias
         const folders = ['sessions', 'logs'];
         folders.forEach(folder => {
             const folderPath = path.join(__dirname, folder);
@@ -520,23 +512,23 @@ async function startBot() {
         
     } catch (error) {
         Logger.error(`Error al iniciar bot: ${error.message}`);
-        console.log('\n❌ ERROR CRÍTICO AL INICIAR EL BOT');
+        console.log('\n ERROR CRÍTICO AL INICIAR EL BOT');
         console.log('Detalles:', error.message);
         
         if (error.message.includes('Failed to launch the browser process')) {
-            console.log('\n🔧 DIAGNÓSTICO DEL ERROR:');
+            console.log('\n DIAGNÓSTICO DEL ERROR:');
             console.log('1. El navegador Chromium no se encuentra en Render');
             console.log('2. Esto se soluciona usando @sparticuz/chromium');
             console.log('3. Verifica que tu package.json tenga:');
             console.log('   - "@sparticuz/chromium": "^121.0.0"');
             console.log('   - "puppeteer-core": "^21.0.0"');
-            console.log('\n🔄 REALIZANDO RECONEXIÓN EN 30 SEGUNDOS...');
+            console.log('\n REALIZANDO RECONEXIÓN EN 30 SEGUNDOS...');
             
             setTimeout(() => {
                 startBot();
             }, 30000);
         } else {
-            console.log('\n🔄 INTENTANDO NUEVAMENTE EN 60 SEGUNDOS...');
+            console.log('\n INTENTANDO NUEVAMENTE EN 60 SEGUNDOS...');
             setTimeout(() => {
                 startBot();
             }, 60000);
@@ -546,20 +538,20 @@ async function startBot() {
 
 // Manejar señales
 process.on('SIGINT', () => {
-    console.log('\n🛑 Apagando bot...');
+    console.log('\n Apagando bot...');
     if (client) {
         client.destroy();
     }
-    console.log('✅ Bot apagado correctamente');
+    console.log(' Bot apagado correctamente');
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-    console.log('\n🛑 Recibida señal de terminación...');
+    console.log('\nRecibida señal de terminación...');
     if (client) {
         client.destroy();
     }
-    console.log('✅ Bot apagado correctamente');
+    console.log(' Bot apagado correctamente');
     process.exit(0);
 });
 
@@ -569,7 +561,7 @@ startBot();
 // Heartbeat para mantener activo
 setInterval(() => {
     if (Date.now() % 60000 < 1000) {
-        Logger.info('🤖 Bot activo y funcionando...');
+        Logger.info('Bot activo y funcionando...');
         
         // Verificar estado del cliente
         if (client && client.pupBrowser && !client.pupBrowser.isConnected()) {
@@ -587,7 +579,7 @@ function getClient() {
 // Exportar para pruebas (opcional)
 if (require.main === module) {
     // Este archivo se ejecuta directamente
-    console.log('🚀 Iniciando bot WhatsApp desde línea de comandos...');
+    console.log(' Iniciando bot WhatsApp desde línea de comandos...');
 } else {
     // Este archivo se importa como módulo
     module.exports = {
@@ -603,10 +595,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
-  res.send('🤖 Bot de WhatsApp activo');
+  res.send('Bot de WhatsApp activo');
 });
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor web escuchando en el puerto ${PORT}`);
 });
+
 
