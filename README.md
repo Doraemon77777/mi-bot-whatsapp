@@ -13,8 +13,8 @@ Instala las dependencias:
 npm install
 
 Inicia el bot:
-
 npm start
+
 
 
 
