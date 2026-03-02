@@ -1,6 +1,6 @@
 # Bot de WhatsApp
 Bot para grupos de WhatsApp.
-## Comandos:
+## Comandos: 
 - `.todo @número mensaje` - Menciona usuario
 - `.notify mensaje` - Notifica a todos
 ## Instalación:
@@ -14,6 +14,7 @@ npm install
 
 Inicia el bot:
 npm start
+
 
 
 
